@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Studio Ronin · tools for building worlds, one panel at a time</title>
-<meta name="description" content="Studio Ronin is a solo creative-software studio making worldbuilding and map-making tools. Chance proposes; the maker authors the meaning.">
-<meta name="theme-color" content="#1a1714">
+<meta name="description" content="Studio Ronin is a solo creative-software studio making worldbuilding and map-making tools. Chance proposes the chaos; the maker authors the meaning.">
+<meta name="theme-color" content="#0b0e14">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
@@ -13,163 +13,219 @@
 <meta property="og:description" content="Tools for building worlds, one panel at a time.">
 <meta property="og:url" content="https://studioronin.app">
 
+<!-- Type: Fraunces (display), Newsreader (body), Spline Sans Mono (labels). Degrades to system serif if blocked. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+
 <style>
   :root{
-    --ink:#1a1714;--soil:#242019;--soil2:#2c271f;
-    --bone:#e9e1d0;--bone-dim:#d4cab4;
-    --ember:#a6362f;--ember-soft:#c2554c;
-    --verd:#6f8b78;--verd-deep:#3c4d43;
-    --gold:#c9a24b;--ash:#8a8174;--ash-dim:#5f594e;--line:#3a3429;
-    --violet:#9a6fc4;
-    --display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
-    --body:Georgia,"Times New Roman",serif;
-    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --void:#0a0d14;        /* deepest night */
+    --ground:#0f131c;      /* page ground */
+    --plate:#161b27;       /* panel surface */
+    --plate-hi:#1c2230;
+    --margin:#e7dcc6;      /* parchment, used sparingly */
+    --bone:#ece4d4;        /* text */
+    --bone-dim:#cabfa9;
+    --ember:#c2554c;--ember-deep:#a6362f;
+    --verd:#7fa890;--verd-deep:#3c4d43;
+    --gold:#d2ab57;--gold-soft:#caa24b;
+    --violet:#a37cd0;
+    --ash:#7b8395;         /* muted, cooled for night */
+    --ash-dim:#525a6b;
+    --line:#262d3c;        /* hairlines on the chart */
+    --line-soft:#1b2130;
+    --display:"Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif;
+    --body:"Newsreader",Georgia,"Times New Roman",serif;
+    --mono:"Spline Sans Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;background:var(--ink);color:var(--bone-dim);
-    font-family:var(--body);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body{margin:0;color:var(--bone-dim);font-family:var(--body);font-optical-sizing:auto;
+    min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden;background:var(--void)}
   a{color:inherit}
-  ::selection{background:rgba(201,162,75,.28)}
+  ::selection{background:rgba(210,171,87,.26)}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:2px}
+
+  /* ---------- night sky + nebula: a fixed layer behind the transparent canvas (also the no-WebGL fallback) ---------- */
+  .sky{position:fixed;inset:0;z-index:0;pointer-events:none;transition:opacity 1.2s ease;
+    background:
+      radial-gradient(1100px 720px at 50% 8%, rgba(60,77,67,.16), transparent 60%),
+      radial-gradient(900px 640px at 78% 28%, rgba(122,90,160,.12), transparent 60%),
+      radial-gradient(820px 600px at 18% 62%, rgba(166,54,47,.10), transparent 62%),
+      radial-gradient(1400px 1000px at 50% 120%, #060810, transparent 60%),
+      var(--void)}
+
+  /* ---------- fixed world canvas (behind everything) ---------- */
+  .scene{position:fixed;inset:0;z-index:1;display:block;width:100%;height:100%;pointer-events:none}
+
+  /* ---------- the chart frame: margin rule, registration marks, live coordinate ---------- */
+  .frame{position:fixed;inset:0;z-index:40;pointer-events:none}
+  .frame .rule{position:absolute;inset:13px;border:1px solid var(--line);border-radius:2px;
+    box-shadow:inset 0 0 0 1px rgba(231,220,198,.025)}
+  .reg{position:absolute;width:16px;height:16px;color:var(--ash)}
+  .reg::before,.reg::after{content:"";position:absolute;background:currentColor}
+  .reg::before{left:50%;top:0;width:1px;height:100%;transform:translateX(-.5px)}
+  .reg::after{top:50%;left:0;height:1px;width:100%;transform:translateY(-.5px)}
+  .reg.tl{left:7px;top:7px}.reg.tr{right:7px;top:7px}.reg.bl{left:7px;bottom:7px}.reg.br{right:7px;bottom:7px}
+  .hud{position:absolute;right:24px;bottom:24px;text-align:right;font-family:var(--mono);
+    font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ash)}
+  .hud .co{color:var(--gold);font-size:13px;letter-spacing:3px;transition:color .4s}
+  .hud .lb{color:var(--ash-dim);margin-top:3px;font-size:9px;letter-spacing:2px}
+  @media(max-width:620px){.hud{right:18px;bottom:18px}.frame .rule{inset:9px}}
 
   .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:2.5px}
+  main{position:relative;z-index:2}
 
-  /* ---------- HERO ---------- */
-  .hero{position:relative;min-height:100svh;display:flex;flex-direction:column;
-    isolation:isolate;overflow:hidden}
-  #scene{position:absolute;inset:0;z-index:0;display:block}
-  /* fallback / atmosphere layered over the canvas */
-  .hero::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:radial-gradient(1100px 620px at 50% -8%,rgba(58,50,38,.55),transparent 62%),
-               radial-gradient(900px 700px at 70% 120%,rgba(40,34,25,.6),transparent 60%)}
-  /* readability scrim at the bottom where text sits */
-  .hero::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:linear-gradient(180deg,rgba(26,23,20,.35) 0%,transparent 22%,transparent 50%,rgba(26,23,20,.78) 100%)}
-  .hero.nogl #scene{background:
-    radial-gradient(1000px 560px at 50% 12%,#322c22,transparent 60%),
-    radial-gradient(700px 500px at 20% 80%,#241f18,transparent 60%),var(--ink)}
+  /* ---------- HERO: tall runway, sticky stage; world builds as you scroll ---------- */
+  .hero{position:relative;height:240vh}
+  .hero-sticky{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
-  .topbar{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;
-    gap:14px;padding:20px clamp(18px,5vw,52px)}
-  .wordmark{display:flex;align-items:center;gap:11px}
-  .seal{width:34px;height:34px;flex:0 0 auto}
-  .wordmark .nm{font-family:var(--display);font-size:18px;color:var(--bone);letter-spacing:.6px;line-height:1}
-  .wordmark .tg{font-family:var(--mono);font-size:8.5px;letter-spacing:3px;text-transform:uppercase;color:var(--ash);margin-top:3px}
-  .topnav{display:flex;gap:6px}
+  .topbar{position:relative;z-index:5;display:flex;align-items:center;justify-content:space-between;
+    gap:14px;padding:26px clamp(20px,5vw,54px) 0}
+  .wordmark{display:flex;align-items:center;gap:12px}
+  .seal{width:38px;height:38px;flex:0 0 auto;color:var(--gold)}
+  .wordmark .nm{font-family:var(--display);font-weight:500;font-size:19px;color:var(--bone);letter-spacing:.4px;line-height:1}
+  .wordmark .tg{font-family:var(--mono);font-size:8.5px;letter-spacing:3px;text-transform:uppercase;color:var(--ash);margin-top:4px}
+  .topnav{display:flex;gap:4px}
   .topnav a{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;
     color:var(--ash);text-decoration:none;padding:8px 12px;border-radius:6px;transition:color .2s,background .2s}
-  .topnav a:hover{color:var(--bone);background:rgba(233,225,208,.05)}
+  .topnav a:hover{color:var(--bone);background:rgba(236,228,212,.05)}
 
-  .hero-body{position:relative;z-index:3;margin-top:auto;padding:0 clamp(18px,5vw,52px) clamp(40px,7vh,84px);max-width:920px}
+  .hero-copy{position:relative;z-index:5;margin-top:auto;padding:0 clamp(20px,5vw,54px) clamp(40px,8vh,92px);
+    max-width:940px;will-change:opacity,transform}
   .coordstamp{font-family:var(--mono);font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);
-    display:inline-flex;align-items:center;gap:10px;margin-bottom:22px}
-  .coordstamp::before,.coordstamp::after{content:"";height:1px;width:30px;background:linear-gradient(90deg,transparent,var(--ash-dim))}
-  .coordstamp::after{background:linear-gradient(90deg,var(--ash-dim),transparent)}
-  h1.title{font-family:var(--display);font-weight:500;color:var(--bone);margin:0;
-    font-size:clamp(46px,9vw,108px);line-height:.95;letter-spacing:-.5px}
-  h1.title .ink{color:var(--ember-soft)}
-  .lede{font-family:var(--display);font-style:italic;color:var(--bone-dim);
-    font-size:clamp(19px,2.6vw,27px);line-height:1.5;margin:26px 0 0;max-width:660px}
+    display:inline-flex;align-items:center;gap:11px;margin-bottom:24px}
+  .coordstamp::before{content:"";height:1px;width:34px;background:linear-gradient(90deg,transparent,var(--gold-soft))}
+  h1.title{font-family:var(--display);font-weight:400;color:var(--bone);margin:0;
+    font-size:clamp(48px,9.4vw,120px);line-height:.92;letter-spacing:-.5px;text-wrap:balance}
+  h1.title .ink{font-style:italic;color:var(--ember);font-weight:500}
+  .lede{font-family:var(--body);font-style:italic;color:var(--bone-dim);
+    font-size:clamp(18px,2.5vw,26px);line-height:1.5;margin:28px 0 0;max-width:640px}
   .lede b{font-style:normal;color:var(--gold);font-weight:500}
-  .hero-cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:34px}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:13px;margin-top:36px}
+
   .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:2px;
-    text-transform:uppercase;text-decoration:none;padding:13px 20px;border-radius:8px;cursor:pointer;
-    transition:transform .18s,box-shadow .18s,background .2s,border-color .2s;border:1px solid transparent}
+    text-transform:uppercase;text-decoration:none;padding:13px 21px;border-radius:7px;cursor:pointer;
+    transition:transform .18s,box-shadow .18s,background .2s,border-color .2s,color .2s;border:1px solid transparent}
   .btn .arr{transition:transform .2s}
   .btn:hover .arr{transform:translateX(4px)}
-  .btn-primary{background:linear-gradient(150deg,#b23c34,#8c2c26);color:#f6ece0;
+  .btn-primary{background:linear-gradient(150deg,#b8443b,#8c2c26);color:#f6ece0;
     box-shadow:0 10px 26px rgba(140,44,38,.34),inset 0 0 0 1px rgba(246,236,224,.12)}
   .btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(140,44,38,.46),inset 0 0 0 1px rgba(246,236,224,.2)}
-  .btn-ghost{border-color:var(--line);color:var(--bone-dim);background:rgba(36,32,25,.4)}
+  .btn-ghost{border-color:var(--line);color:var(--bone-dim);background:rgba(22,27,39,.45)}
   .btn-ghost:hover{border-color:var(--gold);color:var(--bone);transform:translateY(-2px)}
 
-  .scrollcue{position:relative;z-index:3;display:flex;justify-content:center;padding-bottom:20px}
+  .scrollcue{position:absolute;left:0;right:0;bottom:18px;z-index:5;display:flex;justify-content:center;pointer-events:none}
   .scrollcue span{font-family:var(--mono);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--ash-dim);
-    animation:bob 2.4s ease-in-out infinite}
-  @keyframes bob{0%,100%{opacity:.4;transform:translateY(0)}50%{opacity:1;transform:translateY(4px)}}
+    animation:bob 2.6s ease-in-out infinite}
+  @keyframes bob{0%,100%{opacity:.4;transform:translateY(0)}50%{opacity:1;transform:translateY(5px)}}
 
-  /* ---------- shared section ---------- */
-  .wrap{max-width:1040px;margin:0 auto;padding:0 clamp(18px,5vw,40px)}
-  section{position:relative;z-index:2}
-  .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--verd);margin:0 0 16px}
+  /* ---------- the plate: content sits on the chart, world rests behind hero + imprint ---------- */
+  .plate{position:relative;z-index:2;
+    background:linear-gradient(180deg, rgba(15,19,28,0) 0%, rgba(15,19,28,.86) 9%, var(--ground) 26%, var(--ground) 100%)}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 clamp(20px,5vw,42px)}
+
+  /* scale-bar divider: a real ticked rule that carries a unit, not decoration */
+  .scalebar{display:flex;align-items:center;gap:14px;max-width:1060px;margin:0 auto;padding:0 clamp(20px,5vw,42px)}
+  .scalebar .ticks{flex:1;height:11px;position:relative;
+    background-image:repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px 38px);
+    border-bottom:1px solid var(--line)}
+  .scalebar .ticks::after{content:"";position:absolute;left:0;bottom:0;width:1px;height:11px;background:var(--gold-soft)}
+  .scalebar .unit{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ash-dim);white-space:nowrap}
+
+  .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--verd);
+    margin:0 0 18px;display:inline-flex;align-items:center;gap:10px}
+  .eyebrow .co{color:var(--gold-soft)}
+  .eyebrow .co::after{content:"";display:inline-block;width:18px;height:1px;background:var(--line);margin-left:10px;vertical-align:middle}
+
+  /* reveal-on-scroll, quiet (a panel being placed) */
+  .rise{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+  .rise.in{opacity:1;transform:none}
 
   /* ---------- ETHOS ---------- */
-  .ethos{padding:clamp(64px,12vh,128px) 0 clamp(40px,7vh,72px);border-top:1px solid var(--line)}
-  .ethos-grid{display:grid;grid-template-columns:1fr;gap:clamp(28px,5vw,56px);align-items:start}
-  @media(min-width:780px){.ethos-grid{grid-template-columns:1.35fr 1fr}}
-  .ethos h2{font-family:var(--display);font-weight:500;color:var(--bone);
-    font-size:clamp(28px,4.4vw,42px);line-height:1.15;margin:0 0 22px;letter-spacing:-.3px}
-  .ethos p{font-size:17px;line-height:1.72;margin:0 0 18px;max-width:62ch}
+  .ethos{padding:clamp(70px,13vh,140px) 0 clamp(44px,7vh,76px)}
+  .ethos-grid{display:grid;grid-template-columns:1fr;gap:clamp(30px,5vw,58px);align-items:start}
+  @media(min-width:820px){.ethos-grid{grid-template-columns:1.4fr 1fr}}
+  .ethos h2{font-family:var(--display);font-weight:400;color:var(--bone);
+    font-size:clamp(30px,4.6vw,46px);line-height:1.1;margin:0 0 24px;letter-spacing:-.4px;text-wrap:balance}
+  .ethos p{font-size:17.5px;line-height:1.74;margin:0 0 18px;max-width:60ch;color:var(--bone-dim)}
   .ethos p .em{color:var(--bone);font-style:italic}
-  .ethos .pull{font-family:var(--display);font-style:italic;font-size:21px;color:var(--gold);
-    line-height:1.5;border-left:2px solid var(--gold);padding-left:18px;margin:26px 0 0}
-  .ledger{border:1px solid var(--line);border-radius:12px;background:linear-gradient(165deg,var(--soil2),var(--soil));
-    padding:24px 22px;box-shadow:0 14px 40px rgba(0,0,0,.4)}
-  .ledger .lh{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ash);
-    padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
-  .lrow{display:flex;align-items:baseline;gap:14px;padding:13px 0;border-bottom:1px solid rgba(58,52,41,.55)}
-  .lrow:last-child{border-bottom:none;padding-bottom:0}
-  .lrow .lc{font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--gold);min-width:54px}
-  .lrow .lt{font-family:var(--display);color:var(--bone);font-size:16px}
-  .lrow .ld{font-size:13px;color:var(--ash);margin-top:2px;line-height:1.4}
-  .lrow.v .lc{color:var(--verd)} .lrow.e .lc{color:var(--ember-soft)} .lrow.p .lc{color:var(--violet)}
+  .ethos .pull{font-family:var(--display);font-style:italic;font-size:22px;color:var(--gold);
+    line-height:1.45;border-left:2px solid var(--gold-soft);padding-left:20px;margin:28px 0 0;font-weight:400}
+
+  /* the legend: a map key answering "what do the symbols mean" */
+  .legend{border:1px solid var(--line);border-radius:12px;background:linear-gradient(168deg,var(--plate-hi),var(--plate));
+    padding:6px 22px 20px;box-shadow:0 18px 46px rgba(0,0,0,.45)}
+  .legend .lh{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ash);
+    padding:18px 0 14px;border-bottom:1px solid var(--line)}
+  .lrow{display:flex;align-items:flex-start;gap:15px;padding:15px 0;border-bottom:1px solid var(--line-soft)}
+  .lrow:last-child{border-bottom:none;padding-bottom:4px}
+  .lrow .gly{flex:0 0 auto;width:22px;height:22px;margin-top:1px}
+  .lrow .k{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ash);display:block;margin-bottom:4px}
+  .lrow .lt{font-family:var(--display);color:var(--bone);font-size:16.5px;line-height:1.2}
+  .lrow .ld{font-size:13px;color:var(--ash);margin-top:4px;line-height:1.45}
+  .lrow.v .k{color:var(--verd)} .lrow.e .k{color:var(--ember)} .lrow.p .k{color:var(--violet)}
 
   /* ---------- PROJECTS ---------- */
-  .projects{padding:clamp(40px,7vh,72px) 0 clamp(64px,11vh,120px)}
-  .sechead{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:34px}
-  .sechead h2{font-family:var(--display);font-weight:500;color:var(--bone);font-size:clamp(26px,4vw,38px);margin:0;letter-spacing:-.3px}
-  .sechead .cnt{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ash)}
-  .pgrid{display:grid;grid-template-columns:1fr;gap:24px}
-  @media(min-width:760px){.pgrid{grid-template-columns:1fr 1fr}}
+  .projects{padding:clamp(44px,7vh,76px) 0 clamp(70px,12vh,130px)}
+  .sechead{margin-bottom:36px}
+  .sechead h2{font-family:var(--display);font-weight:400;color:var(--bone);font-size:clamp(28px,4.2vw,42px);
+    margin:0;letter-spacing:-.4px}
+  .pgrid{display:grid;grid-template-columns:1fr;gap:26px}
+  @media(min-width:780px){.pgrid{grid-template-columns:1fr 1fr}}
 
-  .card{position:relative;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;
-    background:linear-gradient(165deg,#2b261d,#201b15);overflow:hidden;
-    box-shadow:0 16px 44px rgba(0,0,0,.42);transition:transform .25s,box-shadow .25s,border-color .25s}
-  .card:hover{transform:translateY(-5px);box-shadow:0 26px 60px rgba(0,0,0,.55)}
-  .card .accent{height:4px;width:100%}
-  .card.ember .accent{background:linear-gradient(90deg,var(--ember),var(--ember-soft))}
-  .card.verd .accent{background:linear-gradient(90deg,var(--verd-deep),var(--verd))}
-  .card.ember:hover{border-color:rgba(194,85,76,.5)}
-  .card.verd:hover{border-color:rgba(111,139,120,.5)}
-  .card .pad{padding:26px 26px 24px;display:flex;flex-direction:column;flex:1}
-  .ptag{font-family:var(--mono);font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;
-    display:inline-flex;align-self:flex-start;gap:8px;align-items:center;
-    padding:6px 11px;border-radius:30px;border:1px solid var(--line);color:var(--ash);margin-bottom:18px}
-  .card.ember .ptag .dot{color:var(--ember-soft)} .card.verd .ptag .dot{color:var(--verd)}
-  .card h3{font-family:var(--display);font-weight:500;color:var(--bone);font-size:28px;margin:0 0 4px;letter-spacing:-.2px}
-  .card .live{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--ash-dim);margin-bottom:16px}
-  .card .live .pulse{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:middle;
-    background:var(--verd);box-shadow:0 0 0 0 rgba(111,139,120,.6);animation:pulse 2.2s infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(111,139,120,.5)}70%{box-shadow:0 0 0 7px rgba(111,139,120,0)}100%{box-shadow:0 0 0 0 rgba(111,139,120,0)}}
-  .card .desc{font-size:15.5px;line-height:1.65;color:var(--bone-dim);margin:0 0 20px}
-  .card .desc .em{color:var(--bone);font-style:italic}
-  .feats{list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:11px}
-  .feats li{font-size:14px;line-height:1.5;color:var(--bone-dim);padding-left:22px;position:relative}
-  .feats li::before{content:"";position:absolute;left:2px;top:7px;width:7px;height:7px;border-radius:1px;transform:rotate(45deg)}
-  .card.ember .feats li::before{background:var(--ember-soft)}
-  .card.verd .feats li::before{background:var(--verd)}
-  .card .quote{font-family:var(--display);font-style:italic;font-size:15px;color:var(--ash);margin:0 0 22px;line-height:1.5}
-  .card .go{margin-top:auto}
-  .card .go .btn{width:100%;justify-content:center}
-  .card.ember .go .btn:hover{border-color:var(--ember-soft);color:#fff}
-  .card.verd .go .btn:hover{border-color:var(--verd);color:#fff}
+  /* project panels: plate tiles, coordinate-stamped, with a drawn glyph. Not a generic SaaS card. */
+  .panel{position:relative;border:1px solid var(--line);border-radius:13px;overflow:hidden;
+    background:linear-gradient(168deg,var(--plate-hi),var(--plate));
+    box-shadow:0 18px 48px rgba(0,0,0,.45);transition:transform .25s,box-shadow .25s,border-color .25s}
+  .panel:hover{transform:translateY(-5px);box-shadow:0 28px 64px rgba(0,0,0,.58)}
+  .panel::before{content:"";position:absolute;left:13px;top:13px;width:13px;height:13px;
+    border-left:1px solid var(--ash-dim);border-top:1px solid var(--ash-dim);opacity:.6}
+  .panel::after{content:"";position:absolute;right:13px;bottom:13px;width:13px;height:13px;
+    border-right:1px solid var(--ash-dim);border-bottom:1px solid var(--ash-dim);opacity:.6}
+  .panel .top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:26px 26px 0}
+  .panel .stamp{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold-soft)}
+  .panel .stamp .k{display:block;color:var(--ash-dim);font-size:8.5px;letter-spacing:2px;margin-top:4px}
+  .panel .gly{width:46px;height:46px;flex:0 0 auto}
+  .panel .body{padding:18px 26px 26px;display:flex;flex-direction:column;height:calc(100% - 46px)}
+  .panel h3{font-family:var(--display);font-weight:500;color:var(--bone);font-size:30px;margin:0 0 4px;letter-spacing:-.3px}
+  .panel .live{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--ash-dim);margin-bottom:18px}
+  .panel .live .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:8px;vertical-align:middle;
+    background:var(--verd);box-shadow:0 0 0 0 rgba(127,168,144,.55);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(127,168,144,.5)}70%{box-shadow:0 0 0 7px rgba(127,168,144,0)}100%{box-shadow:0 0 0 0 rgba(127,168,144,0)}}
+  .panel .desc{font-size:15.5px;line-height:1.65;color:var(--bone-dim);margin:0 0 20px}
+  .panel .desc .em{color:var(--bone);font-style:italic}
+  .feats{list-style:none;padding:0;margin:0 0 22px;display:flex;flex-direction:column;gap:11px}
+  .feats li{font-size:14px;line-height:1.5;color:var(--bone-dim);padding-left:23px;position:relative}
+  .feats li::before{content:"";position:absolute;left:3px;top:7px;width:7px;height:7px;transform:rotate(45deg);border:1px solid}
+  .panel.ember .feats li::before{border-color:var(--ember);background:rgba(194,85,76,.25)}
+  .panel.verd .feats li::before{border-color:var(--verd);background:rgba(127,168,144,.25)}
+  .panel .quote{font-family:var(--display);font-style:italic;font-size:15.5px;color:var(--ash);margin:0 0 22px;line-height:1.5}
+  .panel .go{margin-top:auto}
+  .panel .go .btn{width:100%;justify-content:center}
+  .panel.ember:hover{border-color:rgba(194,85,76,.5)}
+  .panel.verd:hover{border-color:rgba(127,168,144,.5)}
+  .panel.ember .go .btn:hover{border-color:var(--ember);color:#fff}
+  .panel.verd .go .btn:hover{border-color:var(--verd);color:#fff}
 
-  /* ---------- FOOTER ---------- */
-  footer{border-top:1px solid var(--line);background:linear-gradient(180deg,transparent,rgba(20,17,14,.6));
-    padding:clamp(48px,8vh,80px) 0 44px}
-  .foot-grid{display:flex;flex-wrap:wrap;gap:32px;justify-content:space-between;align-items:flex-start}
-  .foot-note{max-width:50ch}
-  .foot-note .fm{font-family:var(--display);font-size:20px;color:var(--bone);margin:0 0 12px;display:flex;align-items:center;gap:11px}
-  .foot-note p{font-size:14.5px;line-height:1.7;color:var(--ash);margin:0}
-  .foot-note p .em{color:var(--bone-dim);font-style:italic}
-  .foot-links{display:flex;flex-direction:column;gap:13px;min-width:180px}
-  .foot-links .fl-h{font-family:var(--mono);font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ash-dim);margin-bottom:2px}
-  .foot-links a{font-family:var(--mono);font-size:11.5px;letter-spacing:1px;color:var(--bone-dim);text-decoration:none;
+  /* ---------- IMPRINT (footer) ---------- */
+  .imprint{position:relative;z-index:2;border-top:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(15,19,28,.7) 0%, rgba(10,13,20,.25) 100%);
+    padding:clamp(54px,9vh,90px) 0 46px}
+  .imp-grid{display:flex;flex-wrap:wrap;gap:34px;justify-content:space-between;align-items:flex-start}
+  .imp-note{max-width:48ch}
+  .imp-note .fm{font-family:var(--display);font-size:21px;color:var(--bone);margin:0 0 13px;display:flex;align-items:center;gap:12px;font-weight:500}
+  .imp-note p{font-size:14.5px;line-height:1.7;color:var(--ash);margin:0}
+  .imp-note p .em{color:var(--bone-dim);font-style:italic}
+  .imp-links{display:flex;flex-direction:column;gap:13px;min-width:184px}
+  .imp-links .fl-h{font-family:var(--mono);font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ash-dim);margin-bottom:2px}
+  .imp-links a{font-family:var(--mono);font-size:11.5px;letter-spacing:1px;color:var(--bone-dim);text-decoration:none;
     display:inline-flex;align-items:center;gap:9px;transition:color .2s}
-  .foot-links a:hover{color:var(--gold)}
-  .foot-links a .ic{width:14px;height:14px;flex:0 0 auto;opacity:.8}
-  .colophon{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);
-    display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;align-items:center}
+  .imp-links a:hover{color:var(--gold)}
+  .imp-links a .ic{width:14px;height:14px;flex:0 0 auto;opacity:.8}
+  .colophon{margin-top:42px;padding-top:22px;border-top:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;align-items:center}
   .colophon span{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:var(--ash-dim)}
 
   @media(max-width:560px){
@@ -178,322 +234,580 @@
   }
   @media(prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}
-    .scrollcue span,.card .live .pulse{animation:none}
+    .scrollcue span,.panel .live .dot{animation:none}
+    .rise{opacity:1;transform:none;transition:none}
   }
 </style>
 </head>
 <body>
 
-<!-- ============ HERO ============ -->
-<header class="hero" id="hero">
-  <canvas id="scene"></canvas>
+<div class="sky" aria-hidden="true"></div>
+<canvas id="scene" class="scene" aria-hidden="true"></canvas>
+<script>/* If WebGL will drive the scene, start in darkness (the sky fades in with the light). Keeps the full night sky as a fallback when WebGL is unavailable. */
+(function(){try{var c=document.createElement('canvas');if(c.getContext('webgl')||c.getContext('experimental-webgl')){var s=document.querySelector('.sky');if(s)s.style.opacity='0';}}catch(e){}})();</script>
 
-  <div class="topbar">
-    <div class="wordmark">
-      <svg class="seal" viewBox="0 0 100 100" aria-hidden="true">
-        <circle cx="50" cy="50" r="46" fill="none" stroke="#c9a24b" stroke-width="2"/>
-        <circle cx="50" cy="50" r="38" fill="none" stroke="#3a3429" stroke-width="1"/>
-        <path d="M50 8 L57 50 L50 92 L43 50 Z" fill="#a6362f"/>
-        <path d="M8 50 L50 43 L92 50 L50 57 Z" fill="#2c271f" stroke="#6f8b78" stroke-width="1"/>
-        <circle cx="50" cy="50" r="4" fill="#c9a24b"/>
-      </svg>
-      <div>
-        <div class="nm">Studio Ronin</div>
-        <div class="tg">Independent · Self-directed</div>
-      </div>
-    </div>
-    <nav class="topnav">
-      <a href="#ethos">Ethos</a>
-      <a href="#projects">Projects</a>
-      <a href="https://github.com/roninthecollector-me" target="_blank" rel="noopener">GitHub</a>
-    </nav>
-  </div>
+<!-- chart frame overlay -->
+<div class="frame" aria-hidden="true">
+  <div class="rule"></div>
+  <i class="reg tl"></i><i class="reg tr"></i><i class="reg bl"></i><i class="reg br"></i>
+  <div class="hud"><div class="co" id="hudCoord">N0 E0</div><div class="lb" id="hudLabel">Origin</div></div>
+</div>
 
-  <div class="hero-body">
-    <div class="coordstamp">N0 E0 · Origin</div>
-    <h1 class="title">Worlds, assembled<br>one <span class="ink">panel</span> at a time.</h1>
-    <p class="lede">A solo studio building <b>worldbuilding and map-making tools</b>, where chance proposes the chaos, and the maker authors the meaning.</p>
-    <div class="hero-cta">
-      <a class="btn btn-primary" href="#projects">See the tools <span class="arr">→</span></a>
-      <a class="btn btn-ghost" href="#ethos">The idea <span class="arr">→</span></a>
-    </div>
-  </div>
+<main>
 
-  <div class="scrollcue"><span>Scroll · the map grows</span></div>
-</header>
-
-<!-- ============ ETHOS ============ -->
-<section class="ethos" id="ethos">
-  <div class="wrap ethos-grid">
-    <div>
-      <p class="eyebrow">The throughline</p>
-      <h2>The deck proposes the chaos. You author the meaning.</h2>
-      <p>Studio Ronin makes software for <span class="em">worldbuilders, mapmakers, and tabletop hobbyists</span>: people who'd rather grow a world by hand than have one handed to them. Everything here is built around a single idea. A world is best assembled when the deciding, the directing, and the organizing are taken out of your hands, freeing you to just create, discovering the world as you make it.</p>
-      <p>It's analog-meets-digital, and deliberately even-handed about it: equally at home for someone gluing paper to a wall and someone laying tiles on a screen. Lean tools, no bloat, the work of a <span class="em">ronin</span>: masterless, self-directed, building only what the craft needs.</p>
-      <p class="pull">"Ronin": a masterless craftsman. One maker, a few sharp tools, worlds that grow without permission.</p>
-    </div>
-
-    <aside class="ledger" aria-label="What the tools carry, so you can create">
-      <div class="lh">What the tools carry, so you can create</div>
-      <div class="lrow"><div class="lc">DECIDE</div><div><div class="lt">The deck chooses what's next</div><div class="ld">Chance draws the next move, so you never face a blank page.</div></div></div>
-      <div class="lrow v"><div class="lc">DIRECT</div><div><div class="lt">The map points the way</div><div class="ld">Coordinates and travel decide where the world grows.</div></div></div>
-      <div class="lrow e"><div class="lc">ORDER</div><div><div class="lt">The structure keeps itself</div><div class="ld">Panels, lore, and rules stay filed and findable. Nothing lost.</div></div></div>
-      <div class="lrow p"><div class="lc">CREATE</div><div><div class="lt">That part is all yours</div><div class="ld">Free to make, discovering the world as you build it.</div></div></div>
-    </aside>
-  </div>
-</section>
-
-<!-- ============ PROJECTS ============ -->
-<section class="projects" id="projects">
-  <div class="wrap">
-    <div class="sechead">
-      <div>
-        <p class="eyebrow">What's live</p>
-        <h2>Two tools, one obsession</h2>
-      </div>
-      <div class="cnt">02 / Released</div>
-    </div>
-
-    <div class="pgrid">
-
-      <!-- Sortis Vellum -->
-      <article class="card ember">
-        <div class="accent"></div>
-        <div class="pad">
-          <span class="ptag"><span class="dot">◆</span> Worldbuilding engine</span>
-          <h3>The Sortis Vellum</h3>
-          <div class="live"><span class="pulse"></span>sortis-vellum.vercel.app</div>
-          <p class="desc">A self-contained engine where a <span class="em">randomized card deck</span> drives creation. Draw to found panels, shape terrain, raise settlements, birth heroes, trigger events, and write lore.</p>
-          <ul class="feats">
-            <li>Coordinate panel atlas + print-ready template generator</li>
-            <li>Card rarity, Common → Universal, with "volatile" cards that evolve or self-destruct</li>
-            <li>A World Rules tome &amp; running chronicle of every draw</li>
-            <li>One-click Obsidian vault export + cross-device cloud sync</li>
-          </ul>
-          <p class="quote">"The deck proposes the chaos. You author the meaning."</p>
-          <div class="go">
-            <a class="btn btn-ghost" href="https://sortis-vellum.vercel.app" target="_blank" rel="noopener">Enter the Vellum <span class="arr">→</span></a>
-          </div>
-        </div>
-      </article>
-
-      <!-- Generations -->
-      <article class="card verd">
-        <div class="accent"></div>
-        <div class="pad">
-          <span class="ptag"><span class="dot">◆</span> Panel map viewer</span>
-          <h3>Generations</h3>
-          <div class="live"><span class="pulse"></span>generationsmap.studioronin.app</div>
-          <p class="desc">A standalone viewer for <span class="em">anyone</span> assembling a Jerry's-Map-style panel map, physical or digital. Add panels by coordinate, upload art, and bump each panel's generation over time.</p>
-          <ul class="feats">
-            <li>Signature generation slider: see the whole map "as of" any point in its history</li>
-            <li>Pan / zoom, full-res lightbox, print-ready blank templates</li>
-            <li>Public read-only share links + high-res PNG / JPEG export</li>
-            <li>Local-first &amp; offline; optional cloud sync with Google / email</li>
-          </ul>
-          <p class="quote">"Watch a world grow, generation by generation."</p>
-          <div class="go">
-            <a class="btn btn-ghost" href="https://generationsmap.studioronin.app" target="_blank" rel="noopener">Open Generations <span class="arr">→</span></a>
-          </div>
-        </div>
-      </article>
-
-    </div>
-  </div>
-</section>
-
-<!-- ============ FOOTER ============ -->
-<footer id="contact">
-  <div class="wrap">
-    <div class="foot-grid">
-      <div class="foot-note">
-        <p class="fm">
-          <svg class="seal" style="width:26px;height:26px" viewBox="0 0 100 100" aria-hidden="true">
-            <circle cx="50" cy="50" r="46" fill="none" stroke="#c9a24b" stroke-width="3"/>
-            <path d="M50 8 L57 50 L50 92 L43 50 Z" fill="#a6362f"/>
-            <path d="M8 50 L50 43 L92 50 L50 57 Z" fill="#2c271f" stroke="#6f8b78" stroke-width="2"/>
-            <circle cx="50" cy="50" r="5" fill="#c9a24b"/>
+  <!-- ============ HERO ============ -->
+  <header class="hero" id="N0E0" data-coord="N0 E0" data-label="Origin">
+    <div class="hero-sticky">
+      <div class="topbar">
+        <div class="wordmark">
+          <svg class="seal" viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <circle cx="50" cy="50" r="37" fill="none" stroke="currentColor" stroke-width=".6" opacity=".5"/>
+            <path d="M50 7 L56 50 L50 93 L44 50 Z" fill="#c2554c"/>
+            <path d="M7 50 L50 44 L93 50 L50 56 Z" fill="none" stroke="#7fa890" stroke-width="1.4"/>
+            <path d="M22 22 L52 48 M78 22 L48 48 M22 78 L48 52 M78 78 L52 52" stroke="currentColor" stroke-width=".7" opacity=".55"/>
+            <circle cx="50" cy="50" r="3.4" fill="currentColor"/>
           </svg>
-          Studio Ronin
-        </p>
-        <p>A one-person studio building deliberately small, deliberately crafted tools for people who grow worlds by hand. <span class="em">If you're making a map, a mythology, or a world that won't sit still, these are for you.</span></p>
+          <div>
+            <div class="nm">Studio Ronin</div>
+            <div class="tg">Independent · Self-directed</div>
+          </div>
+        </div>
+        <nav class="topnav">
+          <a href="#N1E0">Ethos</a>
+          <a href="#N2E0">Projects</a>
+          <a href="https://github.com/roninthecollector-me" target="_blank" rel="noopener">GitHub</a>
+        </nav>
       </div>
-      <div class="foot-links">
-        <div class="fl-h">Find the work</div>
-        <a href="https://sortis-vellum.vercel.app" target="_blank" rel="noopener">→ The Sortis Vellum</a>
-        <a href="https://generationsmap.studioronin.app" target="_blank" rel="noopener">→ Generations</a>
-        <a href="https://github.com/roninthecollector-me" target="_blank" rel="noopener">
-          <svg class="ic" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-          roninthecollector-me</a>
-        <a href="mailto:hello@studioronin.app">
-          <svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1.5 4l6.5 5 6.5-5"/></svg>
-          hello@studioronin.app</a>
-      </div>
-    </div>
-    <div class="colophon">
-      <span>© <span id="yr">2026</span> Studio Ronin</span>
-      <span>Built one panel at a time</span>
-      <span>studioronin.app · N0 E0</span>
-    </div>
-  </div>
-</footer>
 
-<!-- Three.js (CDN, global build). App degrades gracefully if blocked. -->
+      <div class="hero-copy" id="heroCopy">
+        <div class="coordstamp">N0 E0 · The light of creation</div>
+        <h1 class="title">Worlds, discovered<br>one <span class="ink">panel</span> at a time.</h1>
+        <p class="lede">A solo studio building <b>worldbuilding and map-making tools</b>, where chance proposes the chaos, and the maker authors the meaning.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#N2E0">See the tools <span class="arr">&rarr;</span></a>
+          <a class="btn btn-ghost" href="#N1E0">The idea <span class="arr">&rarr;</span></a>
+        </div>
+      </div>
+
+      <div class="scrollcue"><span>Scroll to wake the world</span></div>
+    </div>
+  </header>
+
+  <div class="plate">
+
+    <!-- ============ ETHOS ============ -->
+    <section class="ethos" id="N1E0" data-coord="N1 E0" data-label="The throughline">
+      <div class="wrap ethos-grid">
+        <div class="rise">
+          <p class="eyebrow"><span class="co">N1 E0</span> The throughline</p>
+          <h2>The deck proposes the chaos. You author the meaning.</h2>
+          <p>Studio Ronin makes software for <span class="em">worldbuilders, mapmakers, and tabletop hobbyists</span>: people who'd rather grow a world by hand than have one handed to them. Everything here is built around a single idea. A world is best assembled when the deciding, the directing, and the organizing are taken out of your hands, freeing you to just create, discovering the world as you make it.</p>
+          <p>It's analog-meets-digital, and deliberately even-handed about it: equally at home for someone gluing paper to a wall and someone laying tiles on a screen. Lean tools, no bloat, the work of a <span class="em">ronin</span>: masterless, self-directed, building only what the craft needs.</p>
+          <p class="pull">"Ronin": a masterless craftsman. One maker, a few sharp tools, worlds that grow without permission.</p>
+        </div>
+
+        <aside class="legend rise" aria-label="What the tools carry, so you can create">
+          <div class="lh">Legend · what the tools carry</div>
+
+          <div class="lrow">
+            <svg class="gly" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3.5" y="5" width="11" height="15" rx="1.5" transform="rotate(-9 9 12)" stroke="#d2ab57" stroke-width="1.3"/>
+              <rect x="9" y="4" width="11" height="15" rx="1.5" transform="rotate(7 14 11)" fill="#161b27" stroke="#d2ab57" stroke-width="1.3"/>
+              <circle cx="14.5" cy="11.5" r="2" fill="#d2ab57"/>
+            </svg>
+            <div><span class="k">Decide</span><div class="lt">The deck chooses what's next</div><div class="ld">Chance draws the next move, so you never face a blank page.</div></div>
+          </div>
+
+          <div class="lrow v">
+            <svg class="gly" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="#7fa890" stroke-width="1.3"/>
+              <path d="M12 4 L14.5 12 L12 20 L9.5 12 Z" fill="#7fa890"/>
+              <circle cx="12" cy="12" r="1.6" fill="#ece4d4"/>
+            </svg>
+            <div><span class="k">Direct</span><div class="lt">The map points the way</div><div class="ld">Coordinates and travel decide where the world grows.</div></div>
+          </div>
+
+          <div class="lrow e">
+            <svg class="gly" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 7 L12 4 L20 7 L20 17 L12 20 L4 17 Z" stroke="#c2554c" stroke-width="1.3" stroke-linejoin="round"/>
+              <path d="M12 4 L12 20 M4 7 L12 10 L20 7" stroke="#c2554c" stroke-width="1.1" opacity=".7"/>
+            </svg>
+            <div><span class="k">Order</span><div class="lt">The structure keeps itself</div><div class="ld">Panels, lore, and rules stay filed and findable. Nothing lost.</div></div>
+          </div>
+
+          <div class="lrow p">
+            <svg class="gly" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="4.2" fill="#a37cd0"/>
+              <path d="M12 1.5 L12 5 M12 19 L12 22.5 M1.5 12 L5 12 M19 12 L22.5 12 M4.7 4.7 L7.1 7.1 M16.9 16.9 L19.3 19.3 M19.3 4.7 L16.9 7.1 M7.1 16.9 L4.7 19.3" stroke="#a37cd0" stroke-width="1.2" opacity=".75"/>
+            </svg>
+            <div><span class="k">Create</span><div class="lt">That part is all yours</div><div class="ld">Free to make, discovering the world as you build it.</div></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div class="scalebar" aria-hidden="true"><div class="ticks"></div><div class="unit">1 panel</div></div>
+
+    <!-- ============ PROJECTS ============ -->
+    <section class="projects" id="N2E0" data-coord="N2 E0" data-label="What's live">
+      <div class="wrap">
+        <div class="sechead rise">
+          <p class="eyebrow"><span class="co">N2 E0</span> What's live</p>
+          <h2>Two tools, one obsession</h2>
+        </div>
+
+        <div class="pgrid">
+
+          <!-- Sortis Vellum -->
+          <article class="panel ember rise">
+            <div class="top">
+              <div class="stamp">Worldbuilding engine<span class="k">Plate I</span></div>
+              <svg class="gly" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                <rect x="6" y="11" width="20" height="28" rx="2.5" transform="rotate(-10 16 25)" fill="#161b27" stroke="#c2554c" stroke-width="1.6"/>
+                <rect x="16" y="8" width="20" height="28" rx="2.5" transform="rotate(8 26 22)" fill="#1c2230" stroke="#c2554c" stroke-width="1.6"/>
+                <path d="M26 14 L28.5 22 L26 30 L23.5 22 Z" fill="#c2554c"/>
+                <circle cx="26" cy="22" r="2.2" fill="#d2ab57"/>
+              </svg>
+            </div>
+            <div class="body">
+              <h3>The Sortis Vellum</h3>
+              <div class="live"><span class="dot"></span>sortis-vellum.vercel.app</div>
+              <p class="desc">A self-contained engine where a <span class="em">randomized card deck</span> drives creation. Draw to found panels, shape terrain, raise settlements, birth heroes, trigger events, and write lore.</p>
+              <ul class="feats">
+                <li>Coordinate panel atlas and print-ready template generator</li>
+                <li>Card rarity, Common to Universal, with "volatile" cards that evolve or self-destruct</li>
+                <li>A World Rules tome and running chronicle of every draw</li>
+                <li>One-click Obsidian vault export and cross-device cloud sync</li>
+              </ul>
+              <p class="quote">"The deck proposes the chaos. You author the meaning."</p>
+              <div class="go">
+                <a class="btn btn-ghost" href="https://sortis-vellum.vercel.app" target="_blank" rel="noopener">Enter the Vellum <span class="arr">&rarr;</span></a>
+              </div>
+            </div>
+          </article>
+
+          <!-- Generations -->
+          <article class="panel verd rise">
+            <div class="top">
+              <div class="stamp">Panel map viewer<span class="k">Plate II</span></div>
+              <svg class="gly" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                <path d="M24 6 L40 14 L24 22 L8 14 Z" fill="#1c2230" stroke="#7fa890" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M8 22 L24 30 L40 22" stroke="#7fa890" stroke-width="1.5" stroke-linejoin="round" opacity=".7"/>
+                <path d="M8 30 L24 38 L40 30" stroke="#7fa890" stroke-width="1.5" stroke-linejoin="round" opacity=".45"/>
+                <circle cx="24" cy="14" r="2.4" fill="#d2ab57"/>
+              </svg>
+            </div>
+            <div class="body">
+              <h3>Generations</h3>
+              <div class="live"><span class="dot"></span>generationsmap.studioronin.app</div>
+              <p class="desc">A standalone viewer for <span class="em">anyone</span> assembling a Jerry's-Map-style panel map, physical or digital. Add panels by coordinate, upload art, and bump each panel's generation over time.</p>
+              <ul class="feats">
+                <li>Signature generation slider: see the whole map "as of" any point in its history</li>
+                <li>Pan and zoom, full-res lightbox, print-ready blank templates</li>
+                <li>Public read-only share links and high-res PNG or JPEG export</li>
+                <li>Local-first and offline; optional cloud sync with Google or email</li>
+              </ul>
+              <p class="quote">"Watch a world grow, generation by generation."</p>
+              <div class="go">
+                <a class="btn btn-ghost" href="https://generationsmap.studioronin.app" target="_blank" rel="noopener">Open Generations <span class="arr">&rarr;</span></a>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /plate -->
+
+  <!-- ============ IMPRINT ============ -->
+  <footer class="imprint" id="N3E0" data-coord="N3 E0" data-label="Imprint">
+    <div class="wrap">
+      <div class="imp-grid">
+        <div class="imp-note">
+          <p class="fm">
+            <svg class="seal" style="width:28px;height:28px" viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="#d2ab57" stroke-width="2.4"/>
+              <path d="M50 7 L56 50 L50 93 L44 50 Z" fill="#c2554c"/>
+              <path d="M7 50 L50 44 L93 50 L50 56 Z" fill="none" stroke="#7fa890" stroke-width="2"/>
+              <circle cx="50" cy="50" r="4" fill="#d2ab57"/>
+            </svg>
+            Studio Ronin
+          </p>
+          <p>A one-person studio building deliberately small, deliberately crafted tools for people who grow worlds by hand. <span class="em">If you're making a map, a mythology, or a world that won't sit still, these are for you.</span></p>
+        </div>
+        <div class="imp-links">
+          <div class="fl-h">Find the work</div>
+          <a href="https://sortis-vellum.vercel.app" target="_blank" rel="noopener">&rarr; The Sortis Vellum</a>
+          <a href="https://generationsmap.studioronin.app" target="_blank" rel="noopener">&rarr; Generations</a>
+          <a href="https://github.com/roninthecollector-me" target="_blank" rel="noopener">
+            <svg class="ic" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            roninthecollector-me</a>
+          <a href="mailto:hello@studioronin.app">
+            <svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1.5 4l6.5 5 6.5-5"/></svg>
+            hello@studioronin.app</a>
+        </div>
+      </div>
+      <div class="colophon">
+        <span>&copy; <span id="yr">2026</span> Studio Ronin</span>
+        <span>Drawn by hand, plate by plate</span>
+        <span>studioronin.app · N0 E0</span>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<!-- Three.js (CDN, global build). The page is fully usable if this is blocked. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
 <script>
 (function(){
   document.getElementById('yr').textContent = new Date().getFullYear();
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ---- Ambient hero: a panel-map that assembles itself, ring by ring, ----
-  // ---- then a "generation" shimmer sweeps outward forever.             ----
-  function startScene(){
-    var hero = document.getElementById('hero');
+  /* ---- live coordinate HUD: which panel you're standing in ---- */
+  (function(){
+    var hc = document.getElementById('hudCoord'), hl = document.getElementById('hudLabel');
+    var secs = Array.prototype.slice.call(document.querySelectorAll('[data-coord]'));
+    if (!('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting){
+          hc.textContent = en.target.getAttribute('data-coord');
+          hl.textContent = en.target.getAttribute('data-label');
+        }
+      });
+    }, { rootMargin:'-45% 0px -45% 0px', threshold:0 });
+    secs.forEach(function(s){ io.observe(s); });
+  })();
+
+  /* ---- quiet reveal-on-scroll ---- */
+  (function(){
+    if (reduced || !('IntersectionObserver' in window)){
+      document.querySelectorAll('.rise').forEach(function(n){ n.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+    }, { rootMargin:'0px 0px -12% 0px', threshold:.12 });
+    document.querySelectorAll('.rise').forEach(function(n){ io.observe(n); });
+  })();
+
+  /* ====================================================================
+     THE WORLD: a small map seen from above, in total darkness. When you
+     scroll, a fuzzy light blinks into being at the centre and spreads
+     outward; as it reaches each panel, varied voxel structures grow
+     around it, and the flat 2D map tilts up into 3D. Scroll-driven.
+     ==================================================================== */
+  function startWorld(){
     var canvas = document.getElementById('scene');
-    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (typeof THREE === 'undefined'){ hero.classList.add('nogl'); return; }
-    var gl;
-    try { gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl'); } catch(e){}
-    if (!gl){ hero.classList.add('nogl'); return; }
-
-    var C = { ink:0x1a1714, soil:0x2c271f, bone:0x4a4030, ember:0xa6362f,
-              verd:0x6f8b78, gold:0xc9a24b, ash:0x3a3429 };
+    var skyEl = document.querySelector('.sky');
+    if (typeof THREE === 'undefined') return;          // CSS night sky remains
+    var glok; try { glok = canvas.getContext('webgl') || canvas.getContext('experimental-webgl'); } catch(e){}
+    if (!glok) return;
 
     var scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(C.ink, 14, 34);
+    scene.fog = new THREE.FogExp2(0x070a10, 0.019);
 
-    var camera = new THREE.PerspectiveCamera(46, 1, 0.1, 100);
-    camera.position.set(0, 9.4, 12.2);
-    camera.lookAt(0, -0.4, -1.6);
-
-    var renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:true, alpha:false });
-    renderer.setClearColor(C.ink, 1);
+    var camera = new THREE.PerspectiveCamera(46, 1, 0.1, 240);
+    var renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:true, alpha:true });
+    renderer.setClearColor(0x000000, 0);               // transparent: CSS night sky shows through
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
 
-    // Lights: warm, low, like lamplight on parchment
-    scene.add(new THREE.AmbientLight(0x4a4236, 0.85));
-    var key = new THREE.DirectionalLight(0xffe7c0, 0.9);
-    key.position.set(-6, 12, 7); scene.add(key);
-    var ember = new THREE.PointLight(C.ember, 0.7, 26); ember.position.set(0, 3.2, 0); scene.add(ember);
-    var verdL = new THREE.PointLight(C.verd, 0.4, 22); verdL.position.set(7, 2.4, -5); scene.add(verdL);
+    var world = new THREE.Group(); scene.add(world);
 
-    // The grid of panels
-    var N = 16;                 // odd-ish grid; center near origin
-    var SP = 1.06;              // spacing
+    var mobile = Math.min(window.innerWidth, window.innerHeight) < 620;
+    var N = mobile ? 17 : 25;            // panels per side (odd: true centre); denser reads as a continent
+    var SP = 1.0;
     var COUNT = N * N;
-    var geo = new THREE.BoxGeometry(0.94, 0.16, 0.94);
-    var mat = new THREE.MeshStandardMaterial({ roughness:0.92, metalness:0.04 });
-    var mesh = new THREE.InstancedMesh(geo, mat, COUNT);
-    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    scene.add(mesh);
-
-    var dummy = new THREE.Object3D();
-    var baseCol = new THREE.Color();
-    var curCol = new THREE.Color();
-    var gold = new THREE.Color(C.gold);
-    var verdc = new THREE.Color(C.verd);
-
-    // palette weights for tile faces: mostly dark map, a few precious accents
-    function pickBase(r){
-      if (r < 0.06) return C.ember;
-      if (r < 0.12) return C.verd;
-      if (r < 0.17) return C.gold;
-      if (r < 0.55) return C.bone;     // aged paper patch
-      return C.soil;                    // dark ink patch
-    }
-
-    var tiles = [];
     var half = (N - 1) / 2;
+    var maxVox = mobile ? 4 : 6;         // tallest structure, in stacked voxels (lower relief)
+    var voxH = 0.21;                     // small voxels, so it reads as a continent not a city
+
+    function hash(x, y){ var n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return n - Math.floor(n); }
+    function vnoise(x, y){
+      var xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+      var u = xf*xf*(3-2*xf), v = yf*yf*(3-2*yf);
+      var a = hash(xi,yi), b = hash(xi+1,yi), c = hash(xi,yi+1), d = hash(xi+1,yi+1);
+      return a*(1-u)*(1-v) + b*u*(1-v) + c*(1-u)*v + d*u*v;
+    }
+    function fbm(x, y){ var t=0, amp=0.6, f=1; for (var o=0;o<4;o++){ t+=vnoise(x*f,y*f)*amp; f*=2; amp*=0.5; } return t; }
+    function ease(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+    function smooth(a,b,t){ t=Math.max(0,Math.min(1,(t-a)/(b-a))); return t*t*(3-2*t); }
+    function clamp01(x){ return x<0?0:(x>1?1:x); }
+    var seed = Math.random()*40, seed2 = Math.random()*60;
+
+    /* ocean blues at night, varied across the water; plus shore + land floor */
+    var OCEAN = [ new THREE.Color(0x081d29), new THREE.Color(0x103848),
+                  new THREE.Color(0x154766), new THREE.Color(0x216a70), new THREE.Color(0x357f7e) ];
+    function waterColor(e, wn){
+      var t = clamp01(e / 0.40);                         // 0 deepest -> 1 near shore
+      var f = clamp01(t*0.78 + (wn - 0.5)*0.75) * (OCEAN.length - 1);
+      var i0 = Math.floor(f), i1 = Math.min(OCEAN.length-1, i0+1);
+      return OCEAN[i0].clone().lerp(OCEAN[i1], f - i0);
+    }
+    function baseTile(e, wn){
+      if (e < 0.40) return { c:waterColor(e, wn), h: e < 0.27 ? 0.05 : 0.085 };                       // ocean
+      if (e < 0.46) return { c:new THREE.Color(0x3c4337).lerp(new THREE.Color(0x55584a), wn), h:0.14 }; // shore / beach
+      return { c:new THREE.Color(0x29381f).lerp(new THREE.Color(0x39432c), wn), h:0.19 };               // land floor
+    }
+    var colLow  = new THREE.Color(0x33432c);   // forest / wooded
+    var colMid  = new THREE.Color(0x4c4736);   // rock
+    var colHigh = new THREE.Color(0x7d6638);   // lit ridge / peak
+    var dark    = new THREE.Color(0x080b11);   // unlit structure, at night
+    var dusk    = new THREE.Color(0x171f2c);   // faint panel floor, so outlines show in the dusk before scrolling
+    var crest   = new THREE.Color(0xe9c277);   // glow at the arriving light front
+    var warm    = new THREE.Color(0xc77a44);   // warmth near the central light
+    var tmp = new THREE.Color(), tmp2 = new THREE.Color();
+    var dummy = new THREE.Object3D();
+
+    /* ---- build the map, and the structures that grow around the centre ---- */
+    var tiles = [], voxels = [], tileVox = [];
     var maxDist = 0;
+    var mainH = new Int8Array(COUNT);    // primary structure height per tile, for the no-equal-neighbour rule
+    function pushStack(ti, gx, gz, ox, oz, H, foot, taper, k, baseH){
+      for (var j = 0; j < H; j++){
+        var fr = H > 1 ? j/(H-1) : 0;
+        var w = Math.max(0.12, foot - fr*taper);
+        tileVox[ti].push(voxels.length);
+        voxels.push({ x:gx*SP+ox, z:gz*SP+oz, sx:w, sz:w, j:j, Ht:H, k:k, slot:baseH+j*voxH, top:baseH+(j+1)*voxH });
+      }
+    }
     for (var i = 0; i < COUNT; i++){
-      var gx = (i % N) - half;
-      var gz = Math.floor(i / N) - half;
+      var gx = (i % N) - half, gz = Math.floor(i / N) - half;
       var dist = Math.sqrt(gx*gx + gz*gz);
       if (dist > maxDist) maxDist = dist;
-      var r = Math.random();
-      tiles.push({
-        x: gx * SP, z: gz * SP, dist: dist,
-        base: new THREE.Color(pickBase(r)),
-        delay: dist * 0.16 + Math.random() * 0.18,
-        bob: Math.random() * Math.PI * 2,
-        rise: 0
-      });
-      mesh.setColorAt(i, tiles[i].base);
+      var nx = gx / N + 0.5, nz = gz / N + 0.5;
+      var e = clamp01(fbm(nx*3.0 + seed, nz*3.0 + seed) * 1.2 - (dist/(half+0.5)) * 0.5);   // continent in the centre, ocean at the rim
+      var wn = fbm(nx*5.4 + seed*1.7, nz*5.4 + seed*0.6);   // per-tile ocean / ground variation
+      var bt = baseTile(e, wn);
+      tiles.push({ x:gx*SP, z:gz*SP, dist:dist, h:bt.h, col:bt.c, e:e });
+      tileVox.push([]);
+
+      // terrain: plains lie flat, forests get a few small nubs, hills a low mound,
+      // mountains a taller peak. Height is per-tile (jagged), and a no-equal-neighbour
+      // rule keeps adjacent panels from matching -- that sameness is what read as flat.
+      if (e >= 0.46 && dist >= 1.4){
+        var hi   = fbm(nx*2.3 + seed2*0.5, nz*2.3 + seed2*0.9);   // regions where mountains / forests cluster
+        var rDen = hash(gx*12.9 + seed2,  gz*78.2 - seed2);       // per-tile build-or-flat roll
+        var rHt  = hash(gx*39.3 - seed2,  gz*11.1 + seed2);       // per-tile height, decorrelated from neighbours
+        var rSh  = hash(gx*27.1 + seed2,  gz*53.7 - seed2);       // per-tile shape / second structure
+        var r2 = hash(gx*3.1+7, gz*1.1+9), r3 = hash(gx*0.7+3, gz*4.3+1);
+
+        if (rDen*0.82 + (hi-0.5)*0.32 + ((e-0.46)/0.54)*0.22 > 0.38){
+          var mountainy = hi > 0.58 && rSh > 0.28;
+          var foresty   = !mountainy && hi > 0.40;
+          if (foresty){
+            // forest: 2-3 small nubs, already varied; left out of the neighbour rule
+            var nF = 2 + (rSh > 0.6 ? 1 : 0);
+            for (var sF = 0; sF < nF; sF++){
+              var Hf = 1 + Math.round(hash(gx*5+sF, gz*2-sF) * 2);   // 1..3
+              pushStack(i, gx, gz, (hash(gx*7+sF, gz*3+sF)-0.5)*0.66, (hash(gx*9-sF, gz*4+sF)-0.5)*0.66, Hf, 0.3, 0.13, 'f', bt.h);
+            }
+          } else {
+            // hill or mountain: one main structure, height forced to differ from its
+            // already-placed left and up neighbours so heights never clump.
+            var cap  = mountainy ? maxVox + 1 : maxVox - 1;
+            var minH = mountainy ? 2 : 1;
+            var H = minH + Math.round(Math.pow(rHt, mountainy ? 0.85 : 1.15) * (cap - minH));
+            var leftH = (i % N) ? mainH[i-1] : 0;
+            var upH   = (i >= N) ? mainH[i-N] : 0;
+            var dir = rHt > 0.5 ? 1 : -1, guard = 0;
+            while ((H === leftH || H === upH) && guard++ < 6){
+              H += dir;
+              if (H < minH){ H = minH; dir = 1; }
+              else if (H > cap){ H = cap; dir = -1; }
+            }
+            mainH[i] = H;
+            var kind = mountainy ? 'm' : 'h';
+            var off  = mountainy ? 0.18 : 0.34;
+            pushStack(i, gx, gz, (r2-0.5)*off, (r3-0.5)*off, H,
+                      mountainy ? 0.7 : (0.4 + rSh*0.2), mountainy ? 0.32 : 0.3, kind, bt.h);
+            // some panels carry a second, smaller structure
+            if (rSh > (mountainy ? 0.5 : 0.78)){
+              var H2 = mountainy ? Math.max(1, H - 2 - ((rHt*2)|0)) : (1 + ((rHt*2)|0));
+              pushStack(i, gx, gz, (r3-0.5)*0.62, (r2-0.5)*0.62, H2,
+                        mountainy ? 0.44 : 0.28, mountainy ? 0.24 : 0.14, kind, bt.h);
+            }
+          }
+        }
+      }
     }
-    mesh.instanceColor.needsUpdate = true;
 
-    var RISE_DUR = 0.9;
-    var band = 1.7;
-    var sweepSpan = maxDist + 3.2;
-    var SWEEP_DUR = 7.5;
-    var start = performance.now();
-    var mx = 0, my = 0, tmx = 0, tmy = 0;
+    var boxGeo = new THREE.BoxGeometry(0.97, 1, 0.97);
+    var tilesMesh = new THREE.InstancedMesh(boxGeo, new THREE.MeshStandardMaterial({ roughness:0.95, metalness:0.04 }), COUNT);
+    tilesMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    world.add(tilesMesh);
+    for (var ci = 0; ci < COUNT; ci++) tilesMesh.setColorAt(ci, dark);
 
-    function easeOut(t){ return 1 - Math.pow(1 - t, 3); }
+    var voxMesh = null;
+    if (voxels.length){
+      voxMesh = new THREE.InstancedMesh(boxGeo, new THREE.MeshStandardMaterial({ roughness:0.92, metalness:0.05 }), voxels.length);
+      voxMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      world.add(voxMesh);
+      for (var vci = 0; vci < voxels.length; vci++) voxMesh.setColorAt(vci, dark);
+    }
 
+    /* ---- the central light: a fuzzy bloom (no solid core, no column) ---- */
+    function glowTexture(){
+      var c = document.createElement('canvas'); c.width = c.height = 128;
+      var g = c.getContext('2d');
+      var grd = g.createRadialGradient(64,64,0,64,64,64);
+      grd.addColorStop(0.0,'rgba(255,247,224,1)');
+      grd.addColorStop(0.22,'rgba(255,216,156,0.72)');
+      grd.addColorStop(0.55,'rgba(232,150,86,0.22)');
+      grd.addColorStop(1.0,'rgba(232,150,86,0)');
+      g.fillStyle = grd; g.fillRect(0,0,128,128);
+      return new THREE.CanvasTexture(c);
+    }
+    var glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTexture(), transparent:true,
+      depthWrite:false, blending:THREE.AdditiveBlending, opacity:0 }));
+    glow.position.set(0, 0.5, 0); glow.scale.set(0.01, 0.01, 1); world.add(glow);
+
+    /* ---- lights ---- */
+    scene.add(new THREE.AmbientLight(0x141c2a, 0.6));
+    var moon = new THREE.DirectionalLight(0xaebcd8, 0.0); moon.position.set(-6, 12, 5); scene.add(moon);
+    var creation = new THREE.PointLight(0xffb066, 0, 26); creation.position.set(0, 0.7, 0); scene.add(creation);
+
+    /* ---- starfield (galaxy), fades in with the light ---- */
+    var stars;
+    (function(){
+      var SC = mobile ? 480 : 1200;
+      var pos = new Float32Array(SC*3), col = new Float32Array(SC*3);
+      var pal = [new THREE.Color(0xfff2d8), new THREE.Color(0xcdd6ff), new THREE.Color(0xffd0a0), new THREE.Color(0xd9c7ff)];
+      for (var s=0;s<SC;s++){
+        var r = 60 + Math.random()*80, th = Math.random()*Math.PI*2;
+        var band = (Math.random()<0.5) ? (Math.PI/2 + (Math.random()-0.5)*0.7) : Math.acos(2*Math.random()-1);
+        pos[s*3]=r*Math.sin(band)*Math.cos(th); pos[s*3+1]=r*Math.cos(band)*0.6+10; pos[s*3+2]=r*Math.sin(band)*Math.sin(th);
+        var cc = pal[(Math.random()*pal.length)|0], b = 0.5+Math.random()*0.5;
+        col[s*3]=cc.r*b; col[s*3+1]=cc.g*b; col[s*3+2]=cc.b*b;
+      }
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+      g.setAttribute('color', new THREE.BufferAttribute(col,3));
+      stars = new THREE.Points(g, new THREE.PointsMaterial({ size:mobile?0.5:0.42, vertexColors:true,
+        transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:true }));
+      scene.add(stars);
+    })();
+
+    /* ---- camera: top-down 2D map, then tilt up into 3D ---- */
+    var camTop = { px:0, py:28, pz:8,  tx:0, ty:0.0, tz:0 };   // loved top-down map (whole continent in view)
+    var cam3q  = { px:0, py:11, pz:15, tx:0, ty:0.3, tz:-1 };  // continent overlook
+    var target = new THREE.Vector3();
+
+    var scrollP = 0;
+    var heroEl = document.getElementById('N0E0');
+    function onScroll(){
+      var runway = heroEl.offsetHeight - window.innerHeight;
+      scrollP = runway > 0 ? clamp01(window.scrollY / runway) : 0;
+    }
+    window.addEventListener('scroll', onScroll, { passive:true }); onScroll();
+
+    var mx=0, my=0, tmx=0, tmy=0;
     window.addEventListener('pointermove', function(e){
-      tmx = (e.clientX / window.innerWidth  - 0.5);
-      tmy = (e.clientY / window.innerHeight - 0.5);
+      tmx = (e.clientX/window.innerWidth - 0.5); tmy = (e.clientY/window.innerHeight - 0.5);
     }, { passive:true });
 
-    function resize(){
-      var w = hero.clientWidth, h = hero.clientHeight;
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h; camera.updateProjectionMatrix();
-    }
-    window.addEventListener('resize', resize);
-    resize();
+    var heroCopy = document.getElementById('heroCopy');
+    function resize(){ var w=window.innerWidth,h=window.innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+    window.addEventListener('resize', resize); resize();
 
     var running = true;
-    document.addEventListener('visibilitychange', function(){ running = !document.hidden; if(running) loop(); });
+    document.addEventListener('visibilitychange', function(){ running = !document.hidden; if (running) loop(); });
+
+    var revealW = 2.5;                 // softness of the light front
+    var frontSpan = maxDist + 2.2;
+    var lastR = -1, lastBl = -1;
 
     function loop(){
       if (!running) return;
-      var t = (performance.now() - start) / 1000;
+      var now = performance.now();
+      var p = reduced ? 1 : scrollP;
 
-      // smooth parallax
-      mx += (tmx - mx) * 0.04; my += (tmy - my) * 0.04;
-      camera.position.x = mx * 2.4;
-      camera.position.y = 9.4 - my * 1.4;
-      camera.lookAt(0, -0.4, -1.6);
+      // the central light grows from nothing as you begin to scroll. The very top
+      // stays dark, tiles barely visible in the dusk; tied to scroll, so returning
+      // to the top fades it back to darkness.
+      var bl = smooth(0.0, 0.07, p);                       // ignition: 0 at the top -> 1 once scrolling
+      var pulse = 0.86 + 0.14*Math.sin(now*0.0019);
+      glow.material.opacity = bl * pulse;
+      var gs = (0.25 + bl*3.2) * (0.96 + 0.06*Math.sin(now*0.0016));   // grows from a point
+      glow.scale.set(gs, gs, 1);
+      creation.intensity = bl*2.3 + smooth(0.05, 0.5, p)*0.9;
+      moon.intensity = smooth(0.2, 0.95, p) * 0.82;
 
-      // generation shimmer radius, looping outward forever
-      var sweep = ((t + 1.2) % SWEEP_DUR) / SWEEP_DUR * sweepSpan;
+      // sky + stars rise out of darkness as the light takes hold
+      var lum = reduced ? 1 : smooth(0.0, 0.34, p);
+      if (skyEl) skyEl.style.opacity = lum;
+      if (stars) stars.material.opacity = 0.9 * lum;
 
+      // the light front sweeps outward; panels light and structures grow around it.
+      // only re-touch the instances while something is changing (scroll / blink),
+      // so a settled, idle world costs almost nothing per frame.
+      var R = smooth(0.05, 0.86, p) * frontSpan;     // the wave keeps crossing the continent as you scroll
+      var geomDirty = lastR < 0 || Math.abs(R - lastR) > 0.0005 || Math.abs(bl - lastBl) > 0.0025;
+      if (geomDirty){
       for (var i = 0; i < COUNT; i++){
-        var tl = tiles[i];
+        var t = tiles[i];
+        var lit = smooth(0, 1, (R - t.dist) / revealW);
+        var warmth = Math.exp(-t.dist/5.5) * (0.5 + 0.5*bl);
+        var cAt = Math.exp(-Math.pow((t.dist - R)/1.1, 2));      // crest at the front
 
-        // reveal, ring by ring
-        var rt = (t - 0.4 - tl.delay) / RISE_DUR;
-        rt = rt < 0 ? 0 : (rt > 1 ? 1 : rt);
-        tl.rise = easeOut(rt);
+        var hh = 0.035 + t.h * ease(lit);    // panels lie flat in the dark, then rise as the light reaches them
+        dummy.position.set(t.x, hh/2, t.z); dummy.scale.set(1, hh, 1); dummy.updateMatrix();
+        tilesMesh.setMatrixAt(i, dummy.matrix);
+        tmp.copy(dusk).lerp(t.col, lit);
+        if (warmth > 0.02) tmp.lerp(warm, warmth*0.35*lit);
+        if (cAt > 0.02) tmp.lerp(crest, cAt*0.5*(1 - 0.4*p));
+        tilesMesh.setColorAt(i, tmp);
 
-        var glow = reduced ? 0 : Math.max(0, 1 - Math.abs(tl.dist - sweep) / band);
-        glow = glow * glow;
+        var list = tileVox[i];
+        for (var k = 0; k < list.length; k++){
+          var gi = list[k], v = voxels[gi];
+          var thr = v.Ht > 1 ? v.j / v.Ht : 0;
+          var g = ease(clamp01((lit - thr*0.8) / 0.32));        // towers grow upward, voxel by voxel
+          if (g <= 0.002){ dummy.position.set(v.x, v.slot, v.z); dummy.scale.set(0.0001,0.0001,0.0001); }
+          else { var sy = voxH*g; dummy.position.set(v.x, v.slot + sy/2, v.z); dummy.scale.set(v.sx, sy, v.sz); }
+          dummy.updateMatrix(); voxMesh.setMatrixAt(gi, dummy.matrix);
 
-        var bobY = reduced ? 0 : Math.sin(t * 0.7 + tl.bob) * 0.04;
-        var y = (tl.rise - 1) * 3.2        // rise from below
-              + bobY
-              + glow * 0.42;                // lift along the shimmer
-
-        dummy.position.set(tl.x, y, tl.z);
-        var s = 0.6 + tl.rise * 0.4;
-        dummy.scale.set(s, 1, s);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(i, dummy.matrix);
-
-        // color: base, brightened by reveal, washed gold→verd by the sweep
-        curCol.copy(tl.base).multiplyScalar(0.35 + tl.rise * 0.65);
-        if (glow > 0.01){
-          var tint = (i % 5 === 0) ? verdc : gold;
-          curCol.lerp(tint, glow * 0.9);
+          var bc = v.k === 'f' ? colLow : (v.k === 'm' ? (v.top > 1.0 ? colHigh : colMid) : (v.top > 0.85 ? colMid : colLow));
+          tmp2.copy(dark).lerp(bc, g);
+          if (v.top > 1.05) tmp2.lerp(crest, Math.min(0.4, (v.top-1.05)*0.45) * g);
+          if (warmth > 0.02) tmp2.lerp(warm, warmth*0.4*g);
+          if (cAt > 0.02) tmp2.lerp(crest, cAt*0.5*(1 - 0.4*p));
+          voxMesh.setColorAt(gi, tmp2);
         }
-        mesh.setColorAt(i, curCol);
       }
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.instanceColor.needsUpdate = true;
+      tilesMesh.instanceMatrix.needsUpdate = true; tilesMesh.instanceColor.needsUpdate = true;
+      if (voxMesh){ voxMesh.instanceMatrix.needsUpdate = true; voxMesh.instanceColor.needsUpdate = true; }
+      lastR = R; lastBl = bl;
+      }
 
-      ember.intensity = 0.6 + Math.sin(t * 1.3) * 0.12;
+      // camera: hold the flat map while it fills, then tilt up into 3D
+      var tilt = ease(smooth(0.06, 0.6, p));        // tilt up early, so the growth is visible as the wave passes
+      mx += (tmx-mx)*0.04; my += (tmy-my)*0.04;
+      var idle = Math.sin(now*0.0003) * 0.3 * (0.3 + 0.7*p);
+      camera.position.set(
+        camTop.px + (cam3q.px-camTop.px)*tilt + mx*2.0 + idle,
+        camTop.py + (cam3q.py-camTop.py)*tilt - my*1.0,
+        camTop.pz + (cam3q.pz-camTop.pz)*tilt
+      );
+      target.set(
+        camTop.tx + (cam3q.tx-camTop.tx)*tilt,
+        camTop.ty + (cam3q.ty-camTop.ty)*tilt,
+        camTop.tz + (cam3q.tz-camTop.tz)*tilt
+      );
+      camera.lookAt(target);
+
+      world.rotation.y = -0.04 + tilt*0.12;
+      if (stars){ stars.rotation.y = now*0.000012; stars.rotation.x = 0.05; }
+
+      if (heroCopy && !reduced){
+        var f = 1 - smooth(0.1, 0.4, p);
+        heroCopy.style.opacity = f;
+        heroCopy.style.transform = 'translateY(' + (-(1-f)*26) + 'px)';
+        heroCopy.style.pointerEvents = f < 0.1 ? 'none' : 'auto';
+      }
 
       renderer.render(scene, camera);
       requestAnimationFrame(loop);
@@ -501,8 +815,9 @@
     loop();
   }
 
-  if (document.readyState === 'complete') startScene();
-  else window.addEventListener('load', startScene);
+  function boot(){ try { startWorld(); } catch(e){ var s = document.querySelector('.sky'); if (s) s.style.opacity = ''; } }
+  if (document.readyState === 'complete') boot();
+  else window.addEventListener('load', boot);
 })();
 </script>
 </body>
