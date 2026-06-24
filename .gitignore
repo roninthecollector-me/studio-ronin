@@ -6,3 +6,5 @@ Thumbs.db
 # Local tooling
 node_modules/
 .vercel/
+
+.vercel
