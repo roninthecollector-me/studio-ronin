@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Studio Ronin — tools for building worlds, one panel at a time</title>
+<meta name="description" content="Studio Ronin is a solo creative-software studio making worldbuilding and map-making tools. Chance proposes; the maker authors the meaning.">
+<meta name="theme-color" content="#1a1714">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Studio Ronin">
+<meta property="og:description" content="Tools for building worlds, one panel at a time.">
+<meta property="og:url" content="https://studioronin.app">
+
+<style>
+  :root{
+    --ink:#1a1714;--soil:#242019;--soil2:#2c271f;
+    --bone:#e9e1d0;--bone-dim:#d4cab4;
+    --ember:#a6362f;--ember-soft:#c2554c;
+    --verd:#6f8b78;--verd-deep:#3c4d43;
+    --gold:#c9a24b;--ash:#8a8174;--ash-dim:#5f594e;--line:#3a3429;
+    --violet:#9a6fc4;
+    --display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --body:Georgia,"Times New Roman",serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--ink);color:var(--bone-dim);
+    font-family:var(--body);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit}
+  ::selection{background:rgba(201,162,75,.28)}
+
+  .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:2.5px}
+
+  /* ---------- HERO ---------- */
+  .hero{position:relative;min-height:100svh;display:flex;flex-direction:column;
+    isolation:isolate;overflow:hidden}
+  #scene{position:absolute;inset:0;z-index:0;display:block}
+  /* fallback / atmosphere layered over the canvas */
+  .hero::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(1100px 620px at 50% -8%,rgba(58,50,38,.55),transparent 62%),
+               radial-gradient(900px 700px at 70% 120%,rgba(40,34,25,.6),transparent 60%)}
+  /* readability scrim at the bottom where text sits */
+  .hero::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(180deg,rgba(26,23,20,.35) 0%,transparent 22%,transparent 50%,rgba(26,23,20,.78) 100%)}
+  .hero.nogl #scene{background:
+    radial-gradient(1000px 560px at 50% 12%,#322c22,transparent 60%),
+    radial-gradient(700px 500px at 20% 80%,#241f18,transparent 60%),var(--ink)}
+
+  .topbar{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;
+    gap:14px;padding:20px clamp(18px,5vw,52px)}
+  .wordmark{display:flex;align-items:center;gap:11px}
+  .seal{width:34px;height:34px;flex:0 0 auto}
+  .wordmark .nm{font-family:var(--display);font-size:18px;color:var(--bone);letter-spacing:.6px;line-height:1}
+  .wordmark .tg{font-family:var(--mono);font-size:8.5px;letter-spacing:3px;text-transform:uppercase;color:var(--ash);margin-top:3px}
+  .topnav{display:flex;gap:6px}
+  .topnav a{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--ash);text-decoration:none;padding:8px 12px;border-radius:6px;transition:color .2s,background .2s}
+  .topnav a:hover{color:var(--bone);background:rgba(233,225,208,.05)}
+
+  .hero-body{position:relative;z-index:3;margin-top:auto;padding:0 clamp(18px,5vw,52px) clamp(40px,7vh,84px);max-width:920px}
+  .coordstamp{font-family:var(--mono);font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);
+    display:inline-flex;align-items:center;gap:10px;margin-bottom:22px}
+  .coordstamp::before,.coordstamp::after{content:"";height:1px;width:30px;background:linear-gradient(90deg,transparent,var(--ash-dim))}
+  .coordstamp::after{background:linear-gradient(90deg,var(--ash-dim),transparent)}
+  h1.title{font-family:var(--display);font-weight:500;color:var(--bone);margin:0;
+    font-size:clamp(46px,9vw,108px);line-height:.95;letter-spacing:-.5px}
+  h1.title .ink{color:var(--ember-soft)}
+  .lede{font-family:var(--display);font-style:italic;color:var(--bone-dim);
+    font-size:clamp(19px,2.6vw,27px);line-height:1.5;margin:26px 0 0;max-width:660px}
+  .lede b{font-style:normal;color:var(--gold);font-weight:500}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:34px}
+  .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:2px;
+    text-transform:uppercase;text-decoration:none;padding:13px 20px;border-radius:8px;cursor:pointer;
+    transition:transform .18s,box-shadow .18s,background .2s,border-color .2s;border:1px solid transparent}
+  .btn .arr{transition:transform .2s}
+  .btn:hover .arr{transform:translateX(4px)}
+  .btn-primary{background:linear-gradient(150deg,#b23c34,#8c2c26);color:#f6ece0;
+    box-shadow:0 10px 26px rgba(140,44,38,.34),inset 0 0 0 1px rgba(246,236,224,.12)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(140,44,38,.46),inset 0 0 0 1px rgba(246,236,224,.2)}
+  .btn-ghost{border-color:var(--line);color:var(--bone-dim);background:rgba(36,32,25,.4)}
+  .btn-ghost:hover{border-color:var(--gold);color:var(--bone);transform:translateY(-2px)}
+
+  .scrollcue{position:relative;z-index:3;display:flex;justify-content:center;padding-bottom:20px}
+  .scrollcue span{font-family:var(--mono);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--ash-dim);
+    animation:bob 2.4s ease-in-out infinite}
+  @keyframes bob{0%,100%{opacity:.4;transform:translateY(0)}50%{opacity:1;transform:translateY(4px)}}
+
+  /* ---------- shared section ---------- */
+  .wrap{max-width:1040px;margin:0 auto;padding:0 clamp(18px,5vw,40px)}
+  section{position:relative;z-index:2}
+  .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--verd);margin:0 0 16px}
+
+  /* ---------- ETHOS ---------- */
+  .ethos{padding:clamp(64px,12vh,128px) 0 clamp(40px,7vh,72px);border-top:1px solid var(--line)}
+  .ethos-grid{display:grid;grid-template-columns:1fr;gap:clamp(28px,5vw,56px);align-items:start}
+  @media(min-width:780px){.ethos-grid{grid-template-columns:1.35fr 1fr}}
+  .ethos h2{font-family:var(--display);font-weight:500;color:var(--bone);
+    font-size:clamp(28px,4.4vw,42px);line-height:1.15;margin:0 0 22px;letter-spacing:-.3px}
+  .ethos p{font-size:17px;line-height:1.72;margin:0 0 18px;max-width:62ch}
+  .ethos p .em{color:var(--bone);font-style:italic}
+  .ethos .pull{font-family:var(--display);font-style:italic;font-size:21px;color:var(--gold);
+    line-height:1.5;border-left:2px solid var(--gold);padding-left:18px;margin:26px 0 0}
+  .ledger{border:1px solid var(--line);border-radius:12px;background:linear-gradient(165deg,var(--soil2),var(--soil));
+    padding:24px 22px;box-shadow:0 14px 40px rgba(0,0,0,.4)}
+  .ledger .lh{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ash);
+    padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
+  .lrow{display:flex;align-items:baseline;gap:14px;padding:13px 0;border-bottom:1px solid rgba(58,52,41,.55)}
+  .lrow:last-child{border-bottom:none;padding-bottom:0}
+  .lrow .lc{font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--gold);min-width:54px}
+  .lrow .lt{font-family:var(--display);color:var(--bone);font-size:16px}
+  .lrow .ld{font-size:13px;color:var(--ash);margin-top:2px;line-height:1.4}
+  .lrow.v .lc{color:var(--verd)} .lrow.e .lc{color:var(--ember-soft)} .lrow.p .lc{color:var(--violet)}
+
+  /* ---------- PROJECTS ---------- */
+  .projects{padding:clamp(40px,7vh,72px) 0 clamp(64px,11vh,120px)}
+  .sechead{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:34px}
+  .sechead h2{font-family:var(--display);font-weight:500;color:var(--bone);font-size:clamp(26px,4vw,38px);margin:0;letter-spacing:-.3px}
+  .sechead .cnt{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ash)}
+  .pgrid{display:grid;grid-template-columns:1fr;gap:24px}
+  @media(min-width:760px){.pgrid{grid-template-columns:1fr 1fr}}
+
+  .card{position:relative;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;
+    background:linear-gradient(165deg,#2b261d,#201b15);overflow:hidden;
+    box-shadow:0 16px 44px rgba(0,0,0,.42);transition:transform .25s,box-shadow .25s,border-color .25s}
+  .card:hover{transform:translateY(-5px);box-shadow:0 26px 60px rgba(0,0,0,.55)}
+  .card .accent{height:4px;width:100%}
+  .card.ember .accent{background:linear-gradient(90deg,var(--ember),var(--ember-soft))}
+  .card.verd .accent{background:linear-gradient(90deg,var(--verd-deep),var(--verd))}
+  .card.ember:hover{border-color:rgba(194,85,76,.5)}
+  .card.verd:hover{border-color:rgba(111,139,120,.5)}
+  .card .pad{padding:26px 26px 24px;display:flex;flex-direction:column;flex:1}
+  .ptag{font-family:var(--mono);font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;
+    display:inline-flex;align-self:flex-start;gap:8px;align-items:center;
+    padding:6px 11px;border-radius:30px;border:1px solid var(--line);color:var(--ash);margin-bottom:18px}
+  .card.ember .ptag .dot{color:var(--ember-soft)} .card.verd .ptag .dot{color:var(--verd)}
+  .card h3{font-family:var(--display);font-weight:500;color:var(--bone);font-size:28px;margin:0 0 4px;letter-spacing:-.2px}
+  .card .live{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--ash-dim);margin-bottom:16px}
+  .card .live .pulse{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:middle;
+    background:var(--verd);box-shadow:0 0 0 0 rgba(111,139,120,.6);animation:pulse 2.2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(111,139,120,.5)}70%{box-shadow:0 0 0 7px rgba(111,139,120,0)}100%{box-shadow:0 0 0 0 rgba(111,139,120,0)}}
+  .card .desc{font-size:15.5px;line-height:1.65;color:var(--bone-dim);margin:0 0 20px}
+  .card .desc .em{color:var(--bone);font-style:italic}
+  .feats{list-style:none;padding:0;margin:0 0 24px;display:flex;flex-direction:column;gap:11px}
+  .feats li{font-size:14px;line-height:1.5;color:var(--bone-dim);padding-left:22px;position:relative}
+  .feats li::before{content:"";position:absolute;left:2px;top:7px;width:7px;height:7px;border-radius:1px;transform:rotate(45deg)}
+  .card.ember .feats li::before{background:var(--ember-soft)}
+  .card.verd .feats li::before{background:var(--verd)}
+  .card .quote{font-family:var(--display);font-style:italic;font-size:15px;color:var(--ash);margin:0 0 22px;line-height:1.5}
+  .card .go{margin-top:auto}
+  .card .go .btn{width:100%;justify-content:center}
+  .card.ember .go .btn:hover{border-color:var(--ember-soft);color:#fff}
+  .card.verd .go .btn:hover{border-color:var(--verd);color:#fff}
+
+  /* ---------- FOOTER ---------- */
+  footer{border-top:1px solid var(--line);background:linear-gradient(180deg,transparent,rgba(20,17,14,.6));
+    padding:clamp(48px,8vh,80px) 0 44px}
+  .foot-grid{display:flex;flex-wrap:wrap;gap:32px;justify-content:space-between;align-items:flex-start}
+  .foot-note{max-width:50ch}
+  .foot-note .fm{font-family:var(--display);font-size:20px;color:var(--bone);margin:0 0 12px;display:flex;align-items:center;gap:11px}
+  .foot-note p{font-size:14.5px;line-height:1.7;color:var(--ash);margin:0}
+  .foot-note p .em{color:var(--bone-dim);font-style:italic}
+  .foot-links{display:flex;flex-direction:column;gap:13px;min-width:180px}
+  .foot-links .fl-h{font-family:var(--mono);font-size:9.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ash-dim);margin-bottom:2px}
+  .foot-links a{font-family:var(--mono);font-size:11.5px;letter-spacing:1px;color:var(--bone-dim);text-decoration:none;
+    display:inline-flex;align-items:center;gap:9px;transition:color .2s}
+  .foot-links a:hover{color:var(--gold)}
+  .foot-links a .ic{width:14px;height:14px;flex:0 0 auto;opacity:.8}
+  .colophon{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;align-items:center}
+  .colophon span{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:var(--ash-dim)}
+
+  @media(max-width:560px){
+    .topnav{display:none}
+    .hero-cta .btn{flex:1 1 100%;justify-content:center}
+  }
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .scrollcue span,.card .live .pulse{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<header class="hero" id="hero">
+  <canvas id="scene"></canvas>
+
+  <div class="topbar">
+    <div class="wordmark">
+      <svg class="seal" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#c9a24b" stroke-width="2"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#3a3429" stroke-width="1"/>
+        <path d="M50 8 L57 50 L50 92 L43 50 Z" fill="#a6362f"/>
+        <path d="M8 50 L50 43 L92 50 L50 57 Z" fill="#2c271f" stroke="#6f8b78" stroke-width="1"/>
+        <circle cx="50" cy="50" r="4" fill="#c9a24b"/>
+      </svg>
+      <div>
+        <div class="nm">Studio Ronin</div>
+        <div class="tg">Independent · Self-directed</div>
+      </div>
+    </div>
+    <nav class="topnav">
+      <a href="#ethos">Ethos</a>
+      <a href="#projects">Projects</a>
+      <a href="https://github.com/roninthecollector-me" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+
+  <div class="hero-body">
+    <div class="coordstamp">N0 E0 · Origin</div>
+    <h1 class="title">Worlds, assembled<br>one <span class="ink">panel</span> at a time.</h1>
+    <p class="lede">A solo studio building <b>worldbuilding and map-making tools</b> — where chance proposes the chaos, and the maker authors the meaning.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#projects">See the tools <span class="arr">→</span></a>
+      <a class="btn btn-ghost" href="#ethos">The idea <span class="arr">→</span></a>
+    </div>
+  </div>
+
+  <div class="scrollcue"><span>Scroll · the map grows</span></div>
+</header>
+
+<!-- ============ ETHOS ============ -->
+<section class="ethos" id="ethos">
+  <div class="wrap ethos-grid">
+    <div>
+      <p class="eyebrow">The throughline</p>
+      <h2>The deck proposes the chaos. You author the meaning.</h2>
+      <p>Studio Ronin makes software for <span class="em">worldbuilders, mapmakers, and tabletop hobbyists</span> — people who'd rather grow a world by hand than have one handed to them. Everything here is built around a single idea: a world is best assembled the way Jerry Gretzinger has spent decades building his — one collaged panel at a time, each new tile drawn by chance and given meaning by the maker.</p>
+      <p>It's analog-meets-digital, and deliberately even-handed about it: equally at home for someone gluing paper to a wall and someone laying tiles on a screen. Lean tools, no bloat — the work of a <span class="em">ronin</span>: masterless, self-directed, building only what the craft needs.</p>
+      <p class="pull">"Ronin" — a masterless craftsman. One maker, a few sharp tools, worlds that grow without permission.</p>
+    </div>
+
+    <aside class="ledger" aria-label="The loop every tool shares">
+      <div class="lh">The loop every tool shares</div>
+      <div class="lrow"><div class="lc">DRAW</div><div><div class="lt">Chance proposes</div><div class="ld">A card, a coordinate, an empty cell on the grid.</div></div></div>
+      <div class="lrow v"><div class="lc">PLACE</div><div><div class="lt">A panel is founded</div><div class="ld">Terrain, settlement, a finished piece of art.</div></div></div>
+      <div class="lrow e"><div class="lc">AUTHOR</div><div><div class="lt">You make it mean something</div><div class="ld">Name it, write its lore, set its rules.</div></div></div>
+      <div class="lrow p"><div class="lc">GROW</div><div><div class="lt">The world keeps going</div><div class="ld">Generation after generation, nothing thrown away.</div></div></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ PROJECTS ============ -->
+<section class="projects" id="projects">
+  <div class="wrap">
+    <div class="sechead">
+      <div>
+        <p class="eyebrow">What's live</p>
+        <h2>Two tools, one obsession</h2>
+      </div>
+      <div class="cnt">02 / Released</div>
+    </div>
+
+    <div class="pgrid">
+
+      <!-- Sortis Vellum -->
+      <article class="card ember">
+        <div class="accent"></div>
+        <div class="pad">
+          <span class="ptag"><span class="dot">◆</span> Worldbuilding engine</span>
+          <h3>The Sortis Vellum</h3>
+          <div class="live"><span class="pulse"></span>sortis-vellum.vercel.app</div>
+          <p class="desc">A self-contained engine where a <span class="em">randomized card deck</span> drives creation — draw to found panels, shape terrain, raise settlements, birth heroes, trigger events, and write lore.</p>
+          <ul class="feats">
+            <li>Coordinate panel atlas + print-ready template generator</li>
+            <li>Card rarity, Common → Universal, with "volatile" cards that evolve or self-destruct</li>
+            <li>A World Rules tome &amp; running chronicle of every draw</li>
+            <li>One-click Obsidian vault export + cross-device cloud sync</li>
+          </ul>
+          <p class="quote">"The deck proposes the chaos. You author the meaning."</p>
+          <div class="go">
+            <a class="btn btn-ghost" href="https://sortis-vellum.vercel.app" target="_blank" rel="noopener">Enter the Vellum <span class="arr">→</span></a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Generations -->
+      <article class="card verd">
+        <div class="accent"></div>
+        <div class="pad">
+          <span class="ptag"><span class="dot">◆</span> Panel map viewer</span>
+          <h3>Generations</h3>
+          <div class="live"><span class="pulse"></span>generationsmap.studioronin.app</div>
+          <p class="desc">A standalone viewer for <span class="em">anyone</span> assembling a Jerry's-Map-style panel map, physical or digital. Add panels by coordinate, upload art, and bump each panel's generation over time.</p>
+          <ul class="feats">
+            <li>Signature generation slider — see the whole map "as of" any point in its history</li>
+            <li>Pan / zoom, full-res lightbox, print-ready blank templates</li>
+            <li>Public read-only share links + high-res PNG / JPEG export</li>
+            <li>Local-first &amp; offline; optional cloud sync with Google / email</li>
+          </ul>
+          <p class="quote">"Watch a world grow, generation by generation."</p>
+          <div class="go">
+            <a class="btn btn-ghost" href="https://generationsmap.studioronin.app" target="_blank" rel="noopener">Open Generations <span class="arr">→</span></a>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer id="contact">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-note">
+        <p class="fm">
+          <svg class="seal" style="width:26px;height:26px" viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#c9a24b" stroke-width="3"/>
+            <path d="M50 8 L57 50 L50 92 L43 50 Z" fill="#a6362f"/>
+            <path d="M8 50 L50 43 L92 50 L50 57 Z" fill="#2c271f" stroke="#6f8b78" stroke-width="2"/>
+            <circle cx="50" cy="50" r="5" fill="#c9a24b"/>
+          </svg>
+          Studio Ronin
+        </p>
+        <p>A one-person studio building deliberately small, deliberately crafted tools for people who grow worlds by hand. <span class="em">If you're making a map, a mythology, or a world that won't sit still — these are for you.</span></p>
+      </div>
+      <div class="foot-links">
+        <div class="fl-h">Find the work</div>
+        <a href="https://sortis-vellum.vercel.app" target="_blank" rel="noopener">→ The Sortis Vellum</a>
+        <a href="https://generationsmap.studioronin.app" target="_blank" rel="noopener">→ Generations</a>
+        <a href="https://github.com/roninthecollector-me" target="_blank" rel="noopener">
+          <svg class="ic" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          roninthecollector-me</a>
+        <a href="mailto:hello@studioronin.app">
+          <svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1.5 4l6.5 5 6.5-5"/></svg>
+          hello@studioronin.app</a>
+      </div>
+    </div>
+    <div class="colophon">
+      <span>© <span id="yr">2026</span> Studio Ronin</span>
+      <span>Built one panel at a time</span>
+      <span>studioronin.app · N0 E0</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Three.js (CDN, global build). App degrades gracefully if blocked. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+<script>
+(function(){
+  document.getElementById('yr').textContent = new Date().getFullYear();
+
+  // ---- Ambient hero: a panel-map that assembles itself, ring by ring, ----
+  // ---- then a "generation" shimmer sweeps outward forever.             ----
+  function startScene(){
+    var hero = document.getElementById('hero');
+    var canvas = document.getElementById('scene');
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (typeof THREE === 'undefined'){ hero.classList.add('nogl'); return; }
+    var gl;
+    try { gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl'); } catch(e){}
+    if (!gl){ hero.classList.add('nogl'); return; }
+
+    var C = { ink:0x1a1714, soil:0x2c271f, bone:0x4a4030, ember:0xa6362f,
+              verd:0x6f8b78, gold:0xc9a24b, ash:0x3a3429 };
+
+    var scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(C.ink, 14, 34);
+
+    var camera = new THREE.PerspectiveCamera(46, 1, 0.1, 100);
+    camera.position.set(0, 9.4, 12.2);
+    camera.lookAt(0, -0.4, -1.6);
+
+    var renderer = new THREE.WebGLRenderer({ canvas:canvas, antialias:true, alpha:false });
+    renderer.setClearColor(C.ink, 1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
+
+    // Lights — warm, low, like lamplight on parchment
+    scene.add(new THREE.AmbientLight(0x4a4236, 0.85));
+    var key = new THREE.DirectionalLight(0xffe7c0, 0.9);
+    key.position.set(-6, 12, 7); scene.add(key);
+    var ember = new THREE.PointLight(C.ember, 0.7, 26); ember.position.set(0, 3.2, 0); scene.add(ember);
+    var verdL = new THREE.PointLight(C.verd, 0.4, 22); verdL.position.set(7, 2.4, -5); scene.add(verdL);
+
+    // The grid of panels
+    var N = 16;                 // odd-ish grid; center near origin
+    var SP = 1.06;              // spacing
+    var COUNT = N * N;
+    var geo = new THREE.BoxGeometry(0.94, 0.16, 0.94);
+    var mat = new THREE.MeshStandardMaterial({ roughness:0.92, metalness:0.04 });
+    var mesh = new THREE.InstancedMesh(geo, mat, COUNT);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    scene.add(mesh);
+
+    var dummy = new THREE.Object3D();
+    var baseCol = new THREE.Color();
+    var curCol = new THREE.Color();
+    var gold = new THREE.Color(C.gold);
+    var verdc = new THREE.Color(C.verd);
+
+    // palette weights for tile faces — mostly dark map, a few precious accents
+    function pickBase(r){
+      if (r < 0.06) return C.ember;
+      if (r < 0.12) return C.verd;
+      if (r < 0.17) return C.gold;
+      if (r < 0.55) return C.bone;     // aged paper patch
+      return C.soil;                    // dark ink patch
+    }
+
+    var tiles = [];
+    var half = (N - 1) / 2;
+    var maxDist = 0;
+    for (var i = 0; i < COUNT; i++){
+      var gx = (i % N) - half;
+      var gz = Math.floor(i / N) - half;
+      var dist = Math.sqrt(gx*gx + gz*gz);
+      if (dist > maxDist) maxDist = dist;
+      var r = Math.random();
+      tiles.push({
+        x: gx * SP, z: gz * SP, dist: dist,
+        base: new THREE.Color(pickBase(r)),
+        delay: dist * 0.16 + Math.random() * 0.18,
+        bob: Math.random() * Math.PI * 2,
+        rise: 0
+      });
+      mesh.setColorAt(i, tiles[i].base);
+    }
+    mesh.instanceColor.needsUpdate = true;
+
+    var RISE_DUR = 0.9;
+    var band = 1.7;
+    var sweepSpan = maxDist + 3.2;
+    var SWEEP_DUR = 7.5;
+    var start = performance.now();
+    var mx = 0, my = 0, tmx = 0, tmy = 0;
+
+    function easeOut(t){ return 1 - Math.pow(1 - t, 3); }
+
+    window.addEventListener('pointermove', function(e){
+      tmx = (e.clientX / window.innerWidth  - 0.5);
+      tmy = (e.clientY / window.innerHeight - 0.5);
+    }, { passive:true });
+
+    function resize(){
+      var w = hero.clientWidth, h = hero.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    var running = true;
+    document.addEventListener('visibilitychange', function(){ running = !document.hidden; if(running) loop(); });
+
+    function loop(){
+      if (!running) return;
+      var t = (performance.now() - start) / 1000;
+
+      // smooth parallax
+      mx += (tmx - mx) * 0.04; my += (tmy - my) * 0.04;
+      camera.position.x = mx * 2.4;
+      camera.position.y = 9.4 - my * 1.4;
+      camera.lookAt(0, -0.4, -1.6);
+
+      // generation shimmer radius, looping outward forever
+      var sweep = ((t + 1.2) % SWEEP_DUR) / SWEEP_DUR * sweepSpan;
+
+      for (var i = 0; i < COUNT; i++){
+        var tl = tiles[i];
+
+        // reveal, ring by ring
+        var rt = (t - 0.4 - tl.delay) / RISE_DUR;
+        rt = rt < 0 ? 0 : (rt > 1 ? 1 : rt);
+        tl.rise = easeOut(rt);
+
+        var glow = reduced ? 0 : Math.max(0, 1 - Math.abs(tl.dist - sweep) / band);
+        glow = glow * glow;
+
+        var bobY = reduced ? 0 : Math.sin(t * 0.7 + tl.bob) * 0.04;
+        var y = (tl.rise - 1) * 3.2        // rise from below
+              + bobY
+              + glow * 0.42;                // lift along the shimmer
+
+        dummy.position.set(tl.x, y, tl.z);
+        var s = 0.6 + tl.rise * 0.4;
+        dummy.scale.set(s, 1, s);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+
+        // color: base, brightened by reveal, washed gold→verd by the sweep
+        curCol.copy(tl.base).multiplyScalar(0.35 + tl.rise * 0.65);
+        if (glow > 0.01){
+          var tint = (i % 5 === 0) ? verdc : gold;
+          curCol.lerp(tint, glow * 0.9);
+        }
+        mesh.setColorAt(i, curCol);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.instanceColor.needsUpdate = true;
+
+      ember.intensity = 0.6 + Math.sin(t * 1.3) * 0.12;
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(loop);
+    }
+    loop();
+  }
+
+  if (document.readyState === 'complete') startScene();
+  else window.addEventListener('load', startScene);
+})();
+</script>
+</body>
+</html>
